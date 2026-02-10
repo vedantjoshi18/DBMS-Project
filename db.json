@@ -1,0 +1,49 @@
+{
+  "events": [
+    {
+      "id": "1",
+      "title": "Angular Global Summit",
+      "date": "2026-05-15T09:00:00.000Z",
+      "category": "Technology",
+      "price": 299,
+      "description": "The biggest Angular conference of the year.",
+      "image": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1000&q=80",
+      "isFeatured": true,
+      "status": "open"
+    },
+    {
+      "id": "2",
+      "title": "Jazz Night Live",
+      "date": "2026-06-20T19:00:00.000Z",
+      "category": "Music",
+      "price": 50,
+      "description": "Smooth jazz under the stars.",
+      "image": "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=1000&q=80",
+      "isFeatured": false,
+      "status": "sold-out"
+    },
+    {
+      "id": "3",
+      "title": "Startup Pitch Day",
+      "date": "2026-07-10T10:00:00.000Z",
+      "category": "Business",
+      "price": 0,
+      "description": "Watch new startups pitch their ideas.",
+      "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1000&q=80",
+      "isFeatured": true,
+      "status": "open"
+    }
+  ],
+  "bookings": [
+    {
+      "id": "68ce",
+      "userName": "Vedant Joshi",
+      "userEmail": "vedant@gmail.com",
+      "tickets": 5,
+      "phone": "6546547874",
+      "eventId": 1,
+      "eventTitle": "Angular Global Summit",
+      "bookingDate": "2026-02-10T13:20:10.989Z"
+    }
+  ]
+}
