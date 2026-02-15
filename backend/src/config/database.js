@@ -1,8 +1,7 @@
 const mongoose = require('mongoose');
 
-const connectDB = async () => {
+const connectDB = async (retries = 5) => {
   try {
-    // Check if MONGODB_URI is defined
     if (!process.env.MONGODB_URI) {
       throw new Error('MONGODB_URI is not defined in environment variables');
     }
@@ -12,8 +11,13 @@ const connectDB = async () => {
     console.log(` - MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(` - MongoDB Connection Error: ${error.message}`);
-    console.error('Please check your MONGODB_URI in the .env file');
-    process.exit(1);
+    if (retries > 0) {
+      console.log(`Retrying connection... (${retries} attempts left)`);
+      setTimeout(() => connectDB(retries - 1), 5000); // Retry after 5 seconds
+    } else {
+      console.error('Failed to connect to MongoDB after multiple attempts');
+      process.exit(1);
+    }
   }
 };
 

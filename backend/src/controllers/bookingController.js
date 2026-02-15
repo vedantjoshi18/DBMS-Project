@@ -14,15 +14,15 @@ exports.createBooking = async (req, res) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: 'Event not found'
+        message: 'Event not found',
       });
     }
 
-    // Check if event is in the future
+    // Check if event is in the past
     if (new Date(event.date) < new Date()) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot book past events'
+        message: 'Cannot book past events',
       });
     }
 
@@ -32,33 +32,31 @@ exports.createBooking = async (req, res) => {
     if (numberOfTickets > availableTickets) {
       return res.status(400).json({
         success: false,
-        message: `Only ${availableTickets} tickets available`
-      });
-    }
-
-    // Check if user already booked this event
-    const existingBooking = await Booking.findOne({
-      event: eventId,
-      user: req.user._id
-    });
-
-    if (existingBooking) {
-      return res.status(400).json({
-        success: false,
-        message: 'You have already booked this event'
+        message: `Only ${availableTickets} tickets available`,
       });
     }
 
     // Calculate total amount
     const totalAmount = event.ticketPrice * numberOfTickets;
 
-    // Create booking
-    const booking = await Booking.create({
-      event: eventId,
-      user: req.user._id,
-      numberOfTickets,
-      totalAmount
-    });
+    let booking;
+    try {
+      booking = await Booking.create({
+        event: eventId,
+        user: req.user._id,
+        numberOfTickets,
+        totalAmount,
+      });
+    } catch (error) {
+      // Handle duplicate booking error
+      if (error.code === 11000) {
+        return res.status(400).json({
+          success: false,
+          message: 'You have already booked this event',
+        });
+      }
+      throw error;
+    }
 
     // Update event attendees
     event.currentAttendees += numberOfTickets;
@@ -71,13 +69,13 @@ exports.createBooking = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Booking created successfully',
-      data: booking
+      data: booking,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Error creating booking',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -94,13 +92,13 @@ exports.getMyBookings = async (req, res) => {
     res.status(200).json({
       success: true,
       count: bookings.length,
-      data: bookings
+      data: bookings,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Error fetching bookings',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -117,27 +115,28 @@ exports.getBooking = async (req, res) => {
     if (!booking) {
       return res.status(404).json({
         success: false,
-        message: 'Booking not found'
+        message: 'Booking not found',
       });
     }
 
-    // Check if user owns this booking or is admin
-    if (booking.user._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    const bookingUserId = booking.user._id ? booking.user._id.toString() : booking.user.toString();
+
+    if (bookingUserId !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: 'Not authorized to view this booking'
+        message: 'Not authorized to view this booking',
       });
     }
 
     res.status(200).json({
       success: true,
-      data: booking
+      data: booking,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Error fetching booking',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -152,7 +151,7 @@ exports.cancelBooking = async (req, res) => {
     if (!booking) {
       return res.status(404).json({
         success: false,
-        message: 'Booking not found'
+        message: 'Booking not found',
       });
     }
 
@@ -160,7 +159,7 @@ exports.cancelBooking = async (req, res) => {
     if (booking.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Not authorized to cancel this booking'
+        message: 'Not authorized to cancel this booking',
       });
     }
 
@@ -168,7 +167,7 @@ exports.cancelBooking = async (req, res) => {
     if (booking.bookingStatus === 'cancelled') {
       return res.status(400).json({
         success: false,
-        message: 'Booking already cancelled'
+        message: 'Booking already cancelled',
       });
     }
 
@@ -176,21 +175,24 @@ exports.cancelBooking = async (req, res) => {
     booking.bookingStatus = 'cancelled';
     await booking.save();
 
-    // Update event attendees
     const event = await Event.findById(booking.event);
-    event.currentAttendees -= booking.numberOfTickets;
-    await event.save();
+    if (event) {
+      event.currentAttendees -= booking.numberOfTickets;
+      await event.save();
+    } else {
+      console.warn(`Event ${booking.event} not found for cancelled booking ${booking._id}`);
+    }
 
     res.status(200).json({
       success: true,
       message: 'Booking cancelled successfully',
-      data: booking
+      data: booking,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Error cancelling booking',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -208,13 +210,13 @@ exports.getAllBookings = async (req, res) => {
     res.status(200).json({
       success: true,
       count: bookings.length,
-      data: bookings
+      data: bookings,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Error fetching bookings',
-      error: error.message
+      error: error.message,
     });
   }
 };

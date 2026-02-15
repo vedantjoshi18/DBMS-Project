@@ -23,7 +23,7 @@ exports.validateRegister = (req, res, next) => {
     });
   }
 
-  next(); 
+  next();
 };
 
 // Validate login input
@@ -75,8 +75,11 @@ exports.validateEvent = (req, res, next) => {
     errors.push('Time is required');
   }
 
-  if (!location || !location.venue || !location.address || !location.city) {
-    errors.push('Complete location information is required');
+  // Better location validation
+  if (!location || typeof location !== 'object') {
+    errors.push('Location must be an object with venue, address, and city');
+  } else if (!location.venue || !location.address || !location.city) {
+    errors.push('Complete location information (venue, address, city) is required');
   }
 
   if (!maxAttendees || maxAttendees < 1) {
@@ -91,5 +94,5 @@ exports.validateEvent = (req, res, next) => {
     });
   }
 
-  next(); 
+  next();
 };
