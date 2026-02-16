@@ -120,7 +120,7 @@ import { MatIconModule } from '@angular/material/icon';
         
         <div class="events-grid">
           <article class="event-card" *ngFor="let event of events$ | async | categoryFilter:selectedCategory; let i = index" 
-                   [routerLink]="['/event', event.id]"
+                   [routerLink]="['/event', event._id || event.id]"
                    [style.animation-delay]="(i * 0.1) + 's'">
             <div class="event-image">
               <img [src]="event.image" [alt]="event.title">
@@ -143,17 +143,17 @@ import { MatIconModule } from '@angular/material/icon';
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                     <circle cx="12" cy="10" r="3"/>
                   </svg>
-                  Campus Event Center
+                  {{ event.location?.venue || event.location?.city || 'Location TBA' }}
                 </p>
                 <div class="event-meta">
-                  <span class="event-price">{{ event.price | currency }}</span>
+                  <span class="event-price">{{ (event.ticketPrice || event.price || 0) | currency }}</span>
                   <span class="event-attendees">
                     <span class="attendee-avatars">
                       <span class="avatar" style="background: #dc2626;">J</span>
                       <span class="avatar" style="background: #ff4d4d;">M</span>
                       <span class="avatar" style="background: #ef4444;">K</span>
                     </span>
-                    +{{ 50 + event.id * 10 }} going
+                    +{{ event.currentAttendees || 0 }} going
                   </span>
                 </div>
               </div>
@@ -1584,12 +1584,23 @@ export class EventListComponent implements AfterViewInit {
   }
 
   getEventDay(event: any): string {
+    if (event.date) {
+      const date = typeof event.date === 'string' ? new Date(event.date) : event.date;
+      return date.getDate().toString().padStart(2, '0');
+    }
     const days = ['01', '05', '12', '15', '20', '25', '28'];
-    return days[event.id % days.length];
+    const id = event.id || parseInt(event._id?.slice(-6) || '0', 16);
+    return days[id % days.length];
   }
 
   getEventMonth(event: any): string {
+    if (event.date) {
+      const date = typeof event.date === 'string' ? new Date(event.date) : event.date;
+      const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      return months[date.getMonth()];
+    }
     const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    return months[event.id % months.length];
+    const id = event.id || parseInt(event._id?.slice(-6) || '0', 16);
+    return months[id % months.length];
   }
 }

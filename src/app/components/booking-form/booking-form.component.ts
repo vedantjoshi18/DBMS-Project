@@ -8,11 +8,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @Component({
   selector: 'app-booking-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MatInputModule, MatButtonModule, MatSnackBarModule, MatIconModule],
+  imports: [CommonModule, ReactiveFormsModule, MatInputModule, MatButtonModule, MatSnackBarModule, MatIconModule, MatProgressSpinnerModule],
   template: `
     <div class="booking-page">
       <div class="booking-container">
@@ -21,56 +22,26 @@ import { MatIconModule } from '@angular/material/icon';
           <p class="event-name">{{ eventTitle }}</p>
         </div>
 
+        <div *ngIf="errorMessage" class="error-message">
+          {{ errorMessage }}
+        </div>
+
         <form [formGroup]="bookingForm" (ngSubmit)="onSubmit()" class="glass-form">
           <div class="form-group">
-            <label for="userName">Full Name</label>
+            <label for="numberOfTickets">Number of Tickets</label>
             <div class="input-wrapper">
-              <mat-icon>person_outline</mat-icon>
-              <input type="text" id="userName" formControlName="userName" placeholder="Enter your full name">
+              <mat-icon>confirmation_number</mat-icon>
+              <input type="number" id="numberOfTickets" formControlName="numberOfTickets" min="1" max="5">
             </div>
-            <div class="error-msg" *ngIf="bookingForm.get('userName')?.touched && bookingForm.get('userName')?.invalid">
-              Name is required
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="userEmail">Email Address</label>
-            <div class="input-wrapper">
-              <mat-icon>mail_outline</mat-icon>
-              <input type="email" id="userEmail" formControlName="userEmail" placeholder="Enter your email">
-            </div>
-            <div class="error-msg" *ngIf="bookingForm.get('userEmail')?.touched && bookingForm.get('userEmail')?.invalid">
-              Valid email is required
+            <div class="error-msg" *ngIf="bookingForm.get('numberOfTickets')?.touched && bookingForm.get('numberOfTickets')?.invalid">
+              1-5 tickets allowed
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="tickets">Tickets</label>
-              <div class="input-wrapper">
-                <mat-icon>confirmation_number</mat-icon>
-                <input type="number" id="tickets" formControlName="tickets" min="1" max="5">
-              </div>
-              <div class="error-msg" *ngIf="bookingForm.get('tickets')?.touched && bookingForm.get('tickets')?.invalid">
-                1-5 tickets allowed
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="phone">Phone Number</label>
-              <div class="input-wrapper">
-                <mat-icon>phone_iphone</mat-icon>
-                <input type="tel" id="phone" formControlName="phone" placeholder="10-digit number">
-              </div>
-              <div class="error-msg" *ngIf="bookingForm.get('phone')?.touched && bookingForm.get('phone')?.invalid">
-                Invalid phone number
-              </div>
-            </div>
-          </div>
-
-          <button type="submit" [disabled]="bookingForm.invalid" class="submit-btn">
-            <span>Confirm Booking</span>
-            <mat-icon>arrow_forward</mat-icon>
+          <button type="submit" [disabled]="bookingForm.invalid || loading || !eventId" class="submit-btn">
+            <span *ngIf="!loading">Confirm Booking</span>
+            <span *ngIf="loading">Processing...</span>
+            <mat-icon *ngIf="!loading">arrow_forward</mat-icon>
           </button>
         </form>
       </div>
@@ -205,6 +176,15 @@ import { MatIconModule } from '@angular/material/icon';
       animation: slideDown 0.2s ease-out;
     }
 
+    .error-message {
+      background-color: #f44336;
+      color: white;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
+
     .submit-btn {
       width: 100%;
       padding: 1rem;
@@ -264,40 +244,67 @@ export class BookingFormComponent {
   bookingService = inject(BookingService);
   snackBar = inject(MatSnackBar);
 
-  eventId: number = 0;
+  eventId: string = '';
   eventTitle: string = '';
+  loading: boolean = false;
+  errorMessage: string = '';
 
   bookingForm: FormGroup = this.fb.group({
-    userName: ['', Validators.required],
-    userEmail: ['', [Validators.required, Validators.email]],
-    tickets: [1, [Validators.required, Validators.min(1), Validators.max(5)]],
-    phone: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]]
+    numberOfTickets: [1, [Validators.required, Validators.min(1), Validators.max(5)]]
   });
 
   ngOnInit() {
-    this.eventId = Number(this.route.snapshot.paramMap.get('id'));
-    this.eventService.getEventById(this.eventId).subscribe(event => {
-      this.eventTitle = event.title;
-    });
+    const idParam = this.route.snapshot.paramMap.get('id');
+    if (idParam) {
+      // Try to get event by ID (could be numeric or MongoDB _id)
+      this.eventService.getEventById(idParam).subscribe({
+        next: (event) => {
+          this.eventTitle = event.title;
+          // Use MongoDB _id if available, otherwise use the numeric ID converted
+          this.eventId = event._id || idParam;
+        },
+        error: (error) => {
+          this.errorMessage = 'Event not found';
+          this.snackBar.open('Event not found', 'Close', {
+            duration: 3000,
+            horizontalPosition: 'center',
+            verticalPosition: 'top',
+            panelClass: ['error-snackbar']
+          });
+        }
+      });
+    }
   }
 
   onSubmit() {
-    if (this.bookingForm.valid) {
-      const bookingData = {
-        ...this.bookingForm.value,
-        eventId: this.eventId,
-        eventTitle: this.eventTitle,
-        bookingDate: new Date()
-      };
+    if (this.bookingForm.valid && !this.loading && this.eventId) {
+      this.loading = true;
+      this.errorMessage = '';
 
-      this.bookingService.createBooking(bookingData).subscribe(() => {
-        this.snackBar.open('Booking Confirmed! 🚀', 'Close', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top',
-          panelClass: ['success-snackbar']
-        });
-        this.router.navigate(['/my-bookings']);
+      this.bookingService.createBooking({
+        eventId: this.eventId,
+        numberOfTickets: this.bookingForm.value.numberOfTickets
+      }).subscribe({
+        next: () => {
+          this.loading = false;
+          this.snackBar.open('Booking Confirmed! 🚀', 'Close', {
+            duration: 3000,
+            horizontalPosition: 'center',
+            verticalPosition: 'top',
+            panelClass: ['success-snackbar']
+          });
+          this.router.navigate(['/my-bookings']);
+        },
+        error: (error) => {
+          this.loading = false;
+          this.errorMessage = error.error?.message || 'Failed to create booking. Please try again.';
+          this.snackBar.open(this.errorMessage, 'Close', {
+            duration: 5000,
+            horizontalPosition: 'center',
+            verticalPosition: 'top',
+            panelClass: ['error-snackbar']
+          });
+        }
       });
     }
   }

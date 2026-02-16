@@ -232,6 +232,5 @@ import { Observable } from 'rxjs';
 })
 export class BookingListComponent {
   bookingService = inject(BookingService);
-  // Hardcoded email for demo since we have a mock auth
-  bookings$: Observable<Booking[]> = this.bookingService.getUserBookings('');
+  bookings$: Observable<Booking[]> = this.bookingService.getMyBookings();
 }

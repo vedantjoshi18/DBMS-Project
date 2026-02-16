@@ -42,12 +42,11 @@ const bookingSchema = new mongoose.Schema(
   }
 );
 
-// Generate unique booking reference before saving
-bookingSchema.pre('save', async function (next) {
+// ✅ Generate unique booking reference before saving - Modern approach
+bookingSchema.pre('save', async function () {
   if (!this.bookingReference) {
     this.bookingReference = 'BK' + Date.now() + Math.random().toString(36).slice(2, 11).toUpperCase();
   }
-  next();
 });
 
 // Prevent duplicate bookings

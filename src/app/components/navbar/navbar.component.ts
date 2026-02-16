@@ -55,14 +55,14 @@ import { AuthService } from '../../services/auth.service';
         
         <form #loginForm="ngForm" (ngSubmit)="onLogin(loginForm)" class="registration-form">
           <div class="form-group">
-            <label for="registerNumber">Register Number</label>
-            <input type="text" 
-                   id="registerNumber"
-                   name="registerNumber" 
+            <label for="email">Email</label>
+            <input type="email" 
+                   id="email"
+                   name="email" 
                    ngModel 
                    required 
-                   placeholder="e.g., 2024CS001"
-                   pattern="[0-9]{4}[A-Za-z]{2}[0-9]{3}">
+                   placeholder="Enter your email"
+                   email>
           </div>
           
           <div class="form-group">
@@ -552,6 +552,10 @@ export class NavbarComponent {
   }
 
   ngOnInit() {
+    // Sync with AuthService login state
+    this.authService.isLoggedIn$.subscribe(isLoggedIn => {
+      this.isLoggedIn = isLoggedIn;
+    });
     this.authService.isLoggedIn$.subscribe(status => this.isLoggedIn = status);
     this.generateCaptcha();
   }
@@ -577,11 +581,11 @@ export class NavbarComponent {
   }
 
   onLogin(form: any) {
-    const registerNumber = form.value.registerNumber;
+    const email = form.value.email;
     const password = form.value.password;
 
     // Check if fields are filled
-    if (!registerNumber || !password || !this.captchaInput) {
+    if (!email || !password || !this.captchaInput) {
       alert('Please fill in all fields.');
       return;
     }
@@ -595,9 +599,20 @@ export class NavbarComponent {
     }
 
     console.log('Login data:', form.value);
-    this.authService.login();
-    this.showLogin = false;
-    this.router.navigate(['/events']);
+    this.authService.login({ email, password }).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.showLogin = false;
+          this.isLoggedIn = true;
+          this.router.navigate(['/events']);
+        }
+      },
+      error: (error) => {
+        alert(error.error?.message || 'Login failed. Please check your credentials.');
+        this.generateCaptcha();
+        this.captchaInput = '';
+      }
+    });
   }
 
   logout() {

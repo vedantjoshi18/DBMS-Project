@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please provide a password'],
       minlength: [6, 'Password must be at least 6 characters'],
-      select: false // Don't return password in queries by default
+      select: false
     },
     role: {
       type: String,
@@ -37,21 +37,20 @@ const userSchema = new mongoose.Schema(
     }
   },
   {
-    timestamps: true // Automatically adds createdAt and updatedAt
+    timestamps: true
   }
 );
 
-// Hash password before saving
-userSchema.pre('save', async function (next) {
+// ✅ Hash password before saving - Modern approach (no next needed)
+userSchema.pre('save', async function () {
   // Only hash if password is modified
   if (!this.isModified('password')) {
-    return next();
+    return;
   }
 
   // Generate salt and hash password
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-  next();
 });
 
 // Method to compare entered password with hashed password

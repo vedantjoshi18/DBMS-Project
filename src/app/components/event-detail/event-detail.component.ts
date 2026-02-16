@@ -63,7 +63,7 @@ import { MatIconModule } from '@angular/material/icon';
                 </div>
                 <div>
                   <span class="meta-label">Location</span>
-                  <span class="meta-value">Campus Event Center</span>
+                  <span class="meta-value">{{ getEventLocation(event) }}</span>
                 </div>
               </div>
               
@@ -76,7 +76,7 @@ import { MatIconModule } from '@angular/material/icon';
                 </div>
                 <div>
                   <span class="meta-label">Time</span>
-                  <span class="meta-value">6:00 PM - 10:00 PM</span>
+                  <span class="meta-value">{{ getEventTime(event) }}</span>
                 </div>
               </div>
             </div>
@@ -89,12 +89,12 @@ import { MatIconModule } from '@angular/material/icon';
             <div class="event-actions">
               <div class="price-display">
                 <span class="price-label">Ticket Price</span>
-                <span class="price-value">{{ event.price | currency }}</span>
+                <span class="price-value">{{ (event.ticketPrice || event.price || 0) | currency }}</span>
               </div>
               
               <button class="btn btn-primary btn-lg" 
-                      [routerLink]="['/book', event.id]"
-                      [disabled]="event.status !== 'open'">
+                      [routerLink]="['/book', event._id || event.id]"
+                      [disabled]="event.status !== 'open' && event.status !== 'upcoming'">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                   <polyline points="22 4 12 14.01 9 11.01"/>
@@ -347,16 +347,40 @@ import { MatIconModule } from '@angular/material/icon';
 export class EventDetailComponent {
   route = inject(ActivatedRoute);
   eventService = inject(EventService);
-  event$: Observable<Event>;
+  event$!: Observable<Event>;
 
   constructor() {
-    const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.event$ = this.eventService.getEventById(id);
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) {
+      this.event$ = this.eventService.getEventById(id);
+    } else {
+      throw new Error('Event ID is required');
+    }
   }
 
   getEventDate(event: Event): string {
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const days = [15, 20, 25, 10, 5, 28, 12];
-    return `${months[event.id % 12]} ${days[event.id % 7]}, 2026`;
+    if (event.date) {
+      const date = typeof event.date === 'string' ? new Date(event.date) : event.date;
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    }
+    return 'Date TBA';
+  }
+
+  getEventLocation(event: Event): string {
+    if (event.location) {
+      return `${event.location.venue}, ${event.location.city}`;
+    }
+    return 'Location TBA';
+  }
+
+  getEventTime(event: Event): string {
+    if (event.time) {
+      return event.time;
+    }
+    return 'Time TBA';
   }
 }
