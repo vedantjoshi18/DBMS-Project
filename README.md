@@ -144,15 +144,3 @@ Frontend (`frontend/package.json`):
 - Backend: No automated tests included by default.
 - Frontend: Angular unit tests can be run with `npm test` inside `frontend/`.
 
-## Tips & Next Steps
-
-- Use a hosted MongoDB (Atlas) for easy remote testing; set `MONGODB_URI` accordingly.
-- Consider adding `docker-compose` for local dev with MongoDB.
-- Add CI and test coverage for backend controllers and frontend components.
-
----
-
-If you want, I can also:
-
-- Add a sample `.env.example` in `backend/`.
-- Create `CONTRIBUTING.md` with development guidelines.
